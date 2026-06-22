@@ -1,0 +1,15 @@
+# Ignore build directory and binaries
+build/
+*.o
+*.a
+*.exe
+
+# Ignore OS metadata
+.DS_Store
+Thumbs.db
+
+# Ignore IDE settings
+.vscode/
+
+# Ignore local environment secrets
+.env
