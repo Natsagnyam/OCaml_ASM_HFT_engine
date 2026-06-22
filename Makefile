@@ -1,18 +1,25 @@
+# Compiler and tools
 CC=gcc
 AS=as
+OCAMLOPT=ocamlfind ocamlopt
 OCAML_WHERE=$(shell ocamlc -where)
-# Consolidate flags for consistency
+
+# Flags
 CFLAGS=-I$(OCAML_WHERE) -fPIC -g
-OCAMLOPT_FLAGS=-g
+# -thread: enables threading mode
+# -package unix,threads: tells ocamlfind to resolve these dependencies
+# -linkpkg: automatically links the required library archives
+OCAMLOPT_FLAGS=-g -thread -package unix,threads -linkpkg
+
+.PHONY: all clean
 
 all: build/main.exe
 
-# Ensure the build directory exists
 build/:
 	mkdir -p build/
 
 build/engine.o: src/engine.s | build/
-	$(AS) $(ASFLAGS) src/engine.s -o build/engine.o
+	$(AS) src/engine.s -o build/engine.o
 
 build/stub.o: src/stub.c | build/
 	$(CC) $(CFLAGS) -c src/stub.c -o build/stub.o
@@ -20,8 +27,9 @@ build/stub.o: src/stub.c | build/
 build/libengine.a: build/engine.o build/stub.o
 	ar rcs build/libengine.a build/engine.o build/stub.o
 
+# Build main.exe using ocamlfind
 build/main.exe: src/main.ml build/libengine.a | build/
-	ocamlopt $(OCAMLOPT_FLAGS) -o build/main.exe src/main.ml build/libengine.a
+	$(OCAMLOPT) $(OCAMLOPT_FLAGS) -o $@ src/main.ml build/libengine.a
 
 clean:
 	rm -rf build/*
