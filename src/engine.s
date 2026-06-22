@@ -4,36 +4,31 @@
 .global asm_push
 .global asm_pop
 
-# asm_push: Producer calls this
-# RDI = buffer, RSI = tail_ptr, RDX = value
+# asm_push: rdi=buffer, rsi=tail_ptr, rdx=value
 asm_push:
-    mov r8, [rsi]           # Load current tail
-    mov r9, r8              
-    inc r9                  # Calculate next tail
-    and r9, 0xFFFF          # Wrap-around mask
+    mov r8, [rsi]
+    mov r9, r8
+    inc r9
+    and r9, 0xFFFF
     
-    # Check if full (simplified: compare with head)
-    # Note: In true SPSC, we cache head locally to avoid hitting consumer cache line
-    
-    mov [rdi + r8*8], rdx   # Write data
-    mfence                  # Ensure data is in memory BEFORE tail update
-    mov [rsi], r9           # Update tail (Producer-only write)
+    mov [rdi + r8*8], rdx
+    sfence                 # Store-Store fence: ensures data write before tail update
+    mov [rsi], r9
     ret
 
-# asm_pop: Consumer calls this
-# RDI = buffer, RSI = head_ptr, RDX = tail_ptr
+# asm_pop: rdi=buffer, rsi=head_ptr, rdx=tail_ptr
 asm_pop:
-    mov r8, [rsi]           # Load current head
-    mov r9, [rdx]           # Load current tail (read-only for consumer)
+    mov r8, [rsi]          # Load head
+    mov r9, [rdx]          # Load tail
     cmp r8, r9
-    je .empty               # Buffer empty
+    je .empty              # Empty if head == tail
     
-    mov rax, [rdi + r8*8]   # Read data
+    mov rax, [rdi + r8*8]  # Read data
     inc r8
-    and r8, 0xFFFF          # Wrap-around mask
-    mfence
-    mov [rsi], r8           # Update head (Consumer-only write)
+    and r8, 0xFFFF
+    lfence                 # Load-Load fence: ensures index read before data read
+    mov [rsi], r8          # Update head
     ret
 .empty:
-    xor rax, rax
+    mov rax, -1            # Return -1 to indicate empty state
     ret

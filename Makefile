@@ -5,7 +5,7 @@ OCAMLOPT=ocamlfind ocamlopt
 OCAML_WHERE=$(shell ocamlc -where)
 
 # Flags
-CFLAGS=-I$(OCAML_WHERE) -fPIC -g
+CFLAGS=-I$(OCAML_WHERE) -Iinclude -fPIC -g
 # -thread: enables threading mode
 # -package unix,threads: tells ocamlfind to resolve these dependencies
 # -linkpkg: automatically links the required library archives
