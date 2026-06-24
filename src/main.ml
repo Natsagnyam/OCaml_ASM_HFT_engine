@@ -9,9 +9,29 @@ external stub_set_pointers : (int64, int64_elt, c_layout) Array1.t -> (int64, in
 external asm_push_blind_caller : int -> unit = "stub_push_blind"
 external stub_get_ticks : unit -> int64 = "stub_get_ticks"
 
+(* External binding *)
+external stub_run_benchmark_native : int64 -> unit = "stub_run_benchmark_native"
 (* Initialization logic *)
 let ring_buffer = stub_alloc_ring_buffer (65536 * 8)
 let tail = stub_alloc_aligned 64
+
+
+
+(* Call this instead of the loop *)
+let run_native_benchmark () =
+  let t0 = stub_get_ticks () in
+  stub_run_benchmark_native 1_000_000L;
+  let t1 = stub_get_ticks () in
+  
+  let diff = Int64.sub t1 t0 in
+  let total_cycles = Int64.to_float diff in
+  let avg_cycles = total_cycles /. 1_000_000.0 in
+  
+  (* Using your calibrated frequency *)
+  let ghz = 3.599 in 
+  Printf.printf "Average: %.2f cycles (%.2f ns)\n" avg_cycles (avg_cycles /. ghz)
+
+
 
 let calibrate () =
   let t0 = stub_get_ticks () in

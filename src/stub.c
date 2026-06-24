@@ -11,8 +11,6 @@
 #include <caml/fail.h>
 #include <string.h>  
 
-
-// Declare the assembly function so C knows its signature
 extern void asm_push_blind(uint64_t *buffer, uint64_t *tail, int64_t value);
 
 static uint64_t *global_tail = NULL;
@@ -23,6 +21,16 @@ CAMLprim value stub_set_pointers(value buffer, value tail) {
     global_tail = (uint64_t*)Caml_ba_data_val(tail);
     return Val_unit;
 }
+
+// The new native loop: 0 FFI overhead inside the loop
+CAMLprim value stub_run_benchmark_native(value iterations) {
+    uint64_t iter = Long_val(iterations);
+    for (uint64_t i = 0; i < iter; i++) {
+        asm_push_blind(global_buffer, global_tail, 123);
+    }
+    return Val_unit;
+}
+
 
 CAMLprim value stub_push_blind(value val) {
     asm_push_blind(global_buffer, global_tail, Long_val(val));

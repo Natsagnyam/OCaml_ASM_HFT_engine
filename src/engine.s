@@ -15,15 +15,13 @@ asm_pop_blind:
 
 .global asm_push_blind
 asm_push_blind:
-    # rdi = buffer_ptr
-    # rsi = tail_ptr
-    # rdx = value
+    # rdi = buffer, rsi = tail, rdx = value
+    mov r8, [rsi]
+    and r8, 0xFFFF
     
-    mov r8, [rsi]          # Load tail index
-    and r8, 0xFFFF         # Mask: Ensure index is [0, 65535]
+    # Bypass cache, write directly to memory
+    movnti [rdi + r8*8], rdx  
     
-    mov [rdi + r8*8], rdx  # Write value
-    
-    inc r8                 # Increment index
-    mov [rsi], r8          # Save updated tail back to memory
+    inc r8
+    mov [rsi], r8
     ret
