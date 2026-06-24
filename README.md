@@ -81,3 +81,9 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash iomem=relaxed intel_iommu=off hugepages
 ## benchmark_result:    I failed like u. I was gonna make it sun 10ns but I've got banana. Sync signals without the fences FAILED!!! as that 
 
 ![I_failed_like_u](Docs/JPEG/benchmark_result.png)
+
+
+
+## benchmark_result:    Still fails as me
+
+![Looser_as_me](Docs/JPEG/Looser_as_me.png)
