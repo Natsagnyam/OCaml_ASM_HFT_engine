@@ -76,3 +76,8 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash iomem=relaxed intel_iommu=off hugepages
 ## But I made it 12ns P99 due to the simple architecture via OCaml, C, ASM
 ![benchmark_result](Docs/JPEG/benchmark_result.png)
 
+
+
+## benchmark_result:    I failed like u. I was gonna make it sun 10ns but I've got banana. Sync signals without the fences FAILED!!! as that 
+
+![I_failed_like_u](Docs/JPEG/benchmark_result.png)

@@ -1,59 +1,59 @@
 open Bigarray
-open Thread
 
-(* --- FFI Declarations --- *)
+(* External bindings *)
 external init_engine : unit -> unit = "caml_init_engine"
 external pin_thread : int -> unit = "stub_pin_thread"
-external alloc_aligned : int -> (int64, int64_elt, c_layout) Array1.t = "stub_alloc_aligned"
-external stub_wait_for_data : unit -> unit = "stub_wait_for_data"
-external asm_push : (int64, int64_elt, c_layout) Array1.t -> (int64, int64_elt, c_layout) Array1.t -> int -> unit = "stub_asm_push"
-external asm_pop : (int64, int64_elt, c_layout) Array1.t -> (int64, int64_elt, c_layout) Array1.t -> (int64, int64_elt, c_layout) Array1.t -> int = "stub_asm_pop"
-external stub_log_push : int -> unit = "stub_log_push"
+external stub_alloc_ring_buffer : int -> (int64, int64_elt, c_layout) Array1.t = "stub_alloc_ring_buffer"
+external stub_alloc_aligned : int -> (int64, int64_elt, c_layout) Array1.t = "stub_alloc_aligned"
+external stub_set_pointers : (int64, int64_elt, c_layout) Array1.t -> (int64, int64_elt, c_layout) Array1.t -> unit = "stub_set_pointers"
+external asm_push_blind_caller : int -> unit = "stub_push_blind"
+external stub_get_ticks : unit -> int64 = "stub_get_ticks"
 
-(* --- Gate Controller for Sync Phase --- *)
-type gate_t = { mutable producer_ready : int; mutable consumer_ready : int; mutable go_signal : int }
-let gate = { producer_ready = 0; consumer_ready = 0; go_signal = 0 }
+(* Initialization logic *)
+let ring_buffer = stub_alloc_ring_buffer (65536 * 8)
+let tail = stub_alloc_aligned 64
 
-(* --- Memory Allocation --- *)
-let buffer = alloc_aligned (65536 * 8)
-let tail   = alloc_aligned 64
-let head   = alloc_aligned 64
+let calibrate () =
+  let t0 = stub_get_ticks () in
+  Unix.sleep 1;
+  let t1 = stub_get_ticks () in
+  (* Use Int64.sub for subtraction *)
+  let diff = Int64.sub t1 t0 in
+  (* Convert to float for the GHz division *)
+  let freq_ghz = Int64.to_float diff /. 1_000_000_000.0 in
+  Printf.printf "Calibrated Frequency: %.3f GHz\n" freq_ghz;
+  freq_ghz
 
-(* --- Execution Logic --- *)
-(* --- Producer and Consumer definitions --- *)
-let run_producer () =
-  pin_thread 1; (* Producer pinned to Core 1 *)
-  gate.producer_ready <- 1;
-  while gate.go_signal = 0 do stub_wait_for_data () done;
-  (* Hot path start *)
-  for i = 0 to 1000000 do
-    asm_push buffer tail i
-  done
+let run_p99_benchmark ghz =
+  let samples = Array.make 1_000_000 0L in
+  for i = 0 to 999_999 do
+      let t0 = stub_get_ticks () in
+      asm_push_blind_caller 123;
+      let t1 = stub_get_ticks () in
+      (* Use Int64.sub instead of '-' *)
+      samples.(i) <- Int64.sub t1 t0
+    done;
+    
+    
+  Array.sort compare samples;
+    let p99 = samples.(990_000) in
+    
+    (* Division using Int64.div *)
+    let avg = Int64.div (Array.fold_left Int64.add 0L samples) 1_000_000L in
+    
+    (* The division here is float division (/.) so it works with floats *)
+    let to_ns cycles ghz = Int64.to_float cycles /. ghz in
+    
+    Printf.printf "Average: %Ld cycles (%.2f ns)\n" avg (to_ns avg ghz);
+    Printf.printf "P99: %Ld cycles (%.2f ns)\n" p99 (to_ns p99 ghz)
+    
 
-let run_consumer () =
-  pin_thread 0; (* Consumer pinned to Core 0 *)
-  gate.consumer_ready <- 1;
-  while gate.go_signal = 0 do stub_wait_for_data () done;
-  (* Hot path start *)
-  for i = 0 to 1000000 do
-    let res = asm_pop buffer head tail in
-    if res = -1 then stub_wait_for_data ()
-  done
-
+(* Main Entry Point *)
 let () =
-  print_endline "Initializing Natska Engine...";
+  tail.{0} <- 0L;
+  stub_set_pointers ring_buffer tail;
   init_engine ();
-  
-  let p = Thread.create run_producer () in
-  let c = Thread.create run_consumer () in
-  
-  while gate.producer_ready = 0 || gate.consumer_ready = 0 do 
-    stub_wait_for_data () 
-  done;
-  
-  print_endline "Sync Phase Complete. Releasing Gates.";
-  gate.go_signal <- 1;
-  
-  Thread.join p;
-  Thread.join c;
-  print_endline "Test complete."
+  pin_thread 1;
+  let ghz = calibrate () in
+  run_p99_benchmark ghz;
+  print_endline "Benchmark complete."
