@@ -39,18 +39,31 @@ make clean
 make  
 ./build/main.exe
 
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash iomem=relaxed intel_iommu=off hugepagesz=2M hugepages=512 isolcpus=1 nohz_full=1 processor.max_cstate=1 rcu=1 rcu_nocbs=1 irqaffinity=0 intel_pstate=disable kthread_cpus=0"
+
+
 ## The architecture does not trigger MESI. There is no wonder why i got 12ns P99. Trust me!
 
 ![Padding1b](Docs/JPEG/Padding1b.png)
 ![Padding1](Docs/JPEG/Padding1.png)
 ![Padding1a](Docs/JPEG/Padding1a.png)
 
+## ring_buffer_pinned_at_hugepage1GB
+
 ![ring_buffer_pinned_at_hugepage1GB](Docs/JPEG/ring_buffer_pinned_at_hugepage1GB.png)
 
-![Project_Layout_OCaml_ASM](Docs/JPEG/Project_Layout_OCaml_ASM.png)
+## Event_Sourced_System_Flow
 
+![Event_Sourced_System_Flow](Docs/JPEG/Event_Sourced_System_Flow.png)
+
+## Tree
+![Project_Layout_OCaml_ASM](Docs/JPEG/Project_Layout_OCaml_ASM.png)
+![tree](Docs/JPEG/tree.png)
+
+## OCaml_C_ASM 
 ![OCaml_C_ASM](Docs/JPEG/OCaml_C_ASM.png)
 
+## NUMA
 ![NUMA](Docs/JPEG/NUMA.png)
 
 

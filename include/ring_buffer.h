@@ -29,6 +29,6 @@ typedef struct __attribute__((aligned(64))) {
 } consumer_ctrl;
 
 // Shared buffer
-extern uint32_t buffer[BUFFER_SIZE];
-
+//extern uint32_t buffer[BUFFER_SIZE];
+extern uint32_t *buffer;
 #endif
