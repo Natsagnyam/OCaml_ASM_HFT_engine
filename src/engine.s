@@ -3,6 +3,7 @@
 .intel_syntax noprefix
 .global asm_push
 .global asm_pop
+.global asm_push_blind
 
 # asm_push: rdi=buffer, rsi=tail_ptr, rdx=value
 # Note: rsi is the pointer to the tail variable in memory
@@ -45,4 +46,22 @@ asm_pop:
 
 .empty:
     mov rax, -1            # Return -1 to indicate empty
+    ret
+
+
+asm_push_blind:
+    # rdi = buffer, rsi = tail, rdx = value
+    # Write to memory at the offset
+    mov %rdx, (%rdi, %rsi, 8) 
+    # Just increment and return - no fence
+    inc %rsi
+    ret
+
+.global asm_pop_blind
+asm_pop_blind:
+    # rdi = buffer, rsi = head
+    # Read from memory at the offset
+    mov (%rdi, %rsi, 8), %rax
+    # Increment head
+    inc %rsi
     ret
