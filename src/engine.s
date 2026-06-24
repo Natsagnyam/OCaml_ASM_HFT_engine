@@ -1,67 +1,47 @@
-.section .note.GNU-stack,"",@progbits
-.text
 .intel_syntax noprefix
-.global asm_push
-.global asm_pop
+
+.section .text
+
+# --- Blind Write Routines (Zero Latency) ---
 .global asm_push_blind
-
-# asm_push: rdi=buffer, rsi=tail_ptr, rdx=value
-# Note: rsi is the pointer to the tail variable in memory
-asm_push:
-    mov r8, [rsi]          # Load current tail index
-    
-    # Write value to buffer at index r8 (assuming 8-byte entries)
-    # The CPU buffer will hold this until the sfence
-    mov [rdi + r8*8], rdx
-    
-    # Store-Store fence: ensures data write is visible to other cores 
-    # BEFORE the tail update is visible.
-    sfence                 
-    
-    # Update tail index
-    inc r8
-    and r8, 0xFFFF
-    mov [rsi], r8
-    
-    ret
-
-# asm_pop: rdi=buffer, rsi=head_ptr, rdx=tail_ptr
-asm_pop:
-    mov r8, [rsi]          # Load head
-    mov r9, [rdx]          # Load tail (volatile)
-    
-    cmp r8, r9
-    je .empty              # Empty if head == tail
-    
-    # Load-Load fence: ensures we read the data only AFTER we've 
-    # confirmed the tail index (r9) is ahead of the head
-    lfence
-    
-    mov rax, [rdi + r8*8]  # Read data from buffer
-    
-    inc r8
-    and r8, 0xFFFF
-    mov [rsi], r8          # Update head
-    ret
-
-.empty:
-    mov rax, -1            # Return -1 to indicate empty
-    ret
-
-
 asm_push_blind:
-    # rdi = buffer, rsi = tail, rdx = value
-    # Write to memory at the offset
-    mov %rdx, (%rdi, %rsi, 8) 
-    # Just increment and return - no fence
-    inc %rsi
+    mov [rdi + rsi*8], rdx
+    inc rsi
     ret
 
 .global asm_pop_blind
 asm_pop_blind:
-    # rdi = buffer, rsi = head
-    # Read from memory at the offset
-    mov (%rdi, %rsi, 8), %rax
-    # Increment head
-    inc %rsi
+    mov rax, [rdi + rsi*8]
+    inc rsi
     ret
+
+# --- Synchronized Routines (Safety Baseline) ---
+.global asm_push
+asm_push:
+    mov r8, [rsi]
+    mov [rdi + r8*8], rdx
+    sfence
+    inc r8
+    and r8, 0xFFFF
+    mov [rsi], r8
+    ret
+
+.global asm_pop
+asm_pop:
+    mov r8, [rsi]
+    mov r9, [rdx]
+    cmp r8, r9
+    je .empty
+    lfence
+    mov rax, [rdi + r8*8]
+    inc r8
+    and r8, 0xFFFF
+    mov [rsi], r8
+    ret
+
+.empty:
+    mov rax, -1
+    ret
+
+# --- Move this to the very bottom ---
+.section .note.GNU-stack,"",@progbits
